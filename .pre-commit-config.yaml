@@ -13,3 +13,11 @@ repos:
       - id: black
         args:
         - --preview
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+    - id: flake8
+      args: [--append-config=.flake8-pre-commit.cfg]
+      additional_dependencies: [attrs>=19.2.0]
+      exclude: ^tests\/

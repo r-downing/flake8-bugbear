@@ -1,21 +1,16 @@
 import json
-import re
 import subprocess
+import tomllib
 
 
 def main():
-    # find a line in pyproject.toml that looks like `python-requires = "..."`
-    # with forgiving spacing and single or double quotes
-    with open("pyproject.toml") as fp:
-        pyproject_txt = fp.read()
-    match = re.search(r"""\n\s*requires-python\s*=\s*['"](.*)['"]""", pyproject_txt)
-    assert match is not None, "'requires-python' line not found in pyproject.toml"
-
-    flake8_bugbear_requires = match.group(1).strip()
+    with open("pyproject.toml", "rb") as fp:
+        toml_data = tomllib.load(fp)
+        flake8_bugbear_requires = toml_data["project"]["requires-python"]
 
     # get pypi data for flake8 as json
     curl_output = subprocess.getoutput(
-        "curl -L -s --header 'Accept: application/vnd.pypi.simple.v1+json'"
+        "curl -L -s --header 'Accept: application/vnd.pypi.simple.latest+json'"
         " https://pypi.org/simple/flake8"
     )
     flake8_pypi_data = json.loads(curl_output)

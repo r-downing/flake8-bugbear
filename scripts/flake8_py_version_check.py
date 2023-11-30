@@ -15,7 +15,8 @@ def main():
 
     # get pypi data for flake8 as json
     curl_output = subprocess.getoutput(
-        "curl -L -s --header 'Accept: application/vnd.pypi.simple.v1+json' https://pypi.org/simple/flake8"
+        "curl -L -s --header 'Accept: application/vnd.pypi.simple.v1+json'"
+        " https://pypi.org/simple/flake8"
     )
     flake8_pypi_data = json.loads(curl_output)
 
@@ -25,9 +26,10 @@ def main():
     )
     flake8_requires = latest_file_data["requires-python"]
 
-    assert (
-        flake8_requires == flake8_bugbear_requires
-    ), f"python version requirements don't match: ({flake8_requires=} != {flake8_bugbear_requires=})"
+    assert flake8_requires == flake8_bugbear_requires, (
+        f"python version requirements don't match: ({flake8_requires=} !="
+        f" {flake8_bugbear_requires=})"
+    )
 
 
 if __name__ == "__main__":

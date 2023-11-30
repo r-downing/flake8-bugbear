@@ -16,6 +16,6 @@ None  # NameConstant (None)
 [1, 2]  # list
 {1, 2}  # set
 {"foo": "bar"}  # dict
-(1,)
-(2, 3)
-t = (4, 5)
+(1,)  # bad
+(2, 3)  # bad
+t = (4, 5)  # good

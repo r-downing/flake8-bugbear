@@ -4,6 +4,7 @@ on:
   schedule:
   # every Sunday at midnight
   - cron: "0 0 * * 0"
+  push: {}
 jobs:
   check-versions:
     runs-on: ubuntu-latest

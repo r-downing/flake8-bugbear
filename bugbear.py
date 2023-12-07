@@ -13,6 +13,7 @@ from keyword import iskeyword
 from typing import Dict, List, Set, Union
 
 import attr
+import libcst as cst
 import pycodestyle
 
 __version__ = "23.12.2"
@@ -371,6 +372,24 @@ class BugBearVisitor(ast.NodeVisitor):
             self.contexts.pop()
 
         self.check_for_b018(node)
+
+    def get_source_segment(self, node: ast.AST):
+        lines = self.lines
+        if isinstance(self.lines, str):
+            lines = self.lines.splitlines()
+        return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
+
+    def visit_Constant(self, node: ast.Constant):
+        if (
+            isinstance(node.value, (str, bytes))
+            and node.lineno == node.end_lineno
+            and isinstance(
+                cst.parse_expression(self.get_source_segment(node)),
+                cst.ConcatenatedString,
+            )
+        ):
+            self.errors.append(B036(node.lineno, node.col_offset))
+        self.generic_visit(node)
 
     def visit_ExceptHandler(self, node):
         if node.type is None:
@@ -1951,8 +1970,12 @@ B034 = Error(
         " due to unintuitive argument positions."
     )
 )
+
 B035 = Error(message="B035 Static key in dict comprehension {!r}.")
 
+B036 = Error(
+    message="B036 Implicit str contatenation found. Either combine or use a '+'."
+)
 
 # Warnings disabled by default.
 B901 = Error(

@@ -670,8 +670,6 @@ class BugbearTestCase(unittest.TestCase):
     # see format spec at
     # https://docs.python.org/3/library/string.html#format-specification-mini-language
     def test_b907_format_specifier_permutations(self):
-        visitor = BugBearVisitor(filename="", lines="")
-
         for fields in itertools.product(
             (None, "x"),  # fill (any character)
             (None, *"<>=^"),  # align
@@ -686,10 +684,9 @@ class BugbearTestCase(unittest.TestCase):
         ):
             format_spec = "".join(f for f in fields if f is not None)
 
-            # directly interact with a visitor to save on runtime
             bbc_string = "f'\"{var:" + format_spec + "}\"'"
+            visitor = BugBearVisitor(filename="", lines=bbc_string.splitlines())
             tree = ast.parse(bbc_string)
-            visitor.errors = []
             visitor.visit(tree)
 
             format_string = "'{:" + format_spec + "}'"
@@ -938,12 +935,14 @@ class TestFuzz(unittest.TestCase):
         from hypothesmith import from_grammar
 
         @settings(suppress_health_check=[HealthCheck.too_slow])
-        @given(from_grammar().map(ast.parse))
-        def test_does_not_crash_on_any_valid_code(self, syntax_tree):
+        @given(from_grammar())
+        def test_does_not_crash_on_any_valid_code(self, source: str):
             # Given any syntatically-valid source code, flake8-bugbear should
             # not crash.  This tests doesn't check that we do the *right* thing,
             # just that we don't crash on valid-if-poorly-styled code!
-            BugBearVisitor(filename="<string>", lines=[]).visit(syntax_tree)
+            syntax_tree = ast.parse(source)
+            lines = source.splitlines()
+            BugBearVisitor(filename="<string>", lines=lines).visit(syntax_tree)
 
     def test_does_not_crash_on_site_code(self):
         # Because the generator isn't perfect, we'll also test on all the code
@@ -959,7 +958,7 @@ class TestFuzz(unittest.TestCase):
         # akin to test_does_not_crash_on_any_valid_code
         # but targets a rare case that's not covered by hypothesmith.from_grammar
         # see https://github.com/PyCQA/flake8-bugbear/issues/153
-        syntax_tree = ast.parse(
+        source = (
             "grey_list = (ValueError,)\n"
             "black_list = (TypeError,)\n"
             "try:\n"
@@ -967,15 +966,17 @@ class TestFuzz(unittest.TestCase):
             "except (*grey_list, *black_list):\n"
             "     print('error caught')"
         )
-        BugBearVisitor(filename="<string>", lines=[]).visit(syntax_tree)
+        lines = source.splitlines()
+        syntax_tree = ast.parse(source)
+        BugBearVisitor(filename="<string>", lines=lines).visit(syntax_tree)
 
     def test_does_not_crash_on_call_in_except_statement(self):
         # akin to test_does_not_crash_on_tuple_expansion_in_except_statement
         # see https://github.com/PyCQA/flake8-bugbear/issues/171
-        syntax_tree = ast.parse(
-            "foo = lambda: IOError\ntry:\n    ...\nexcept (foo(),):\n    ...\n"
-        )
-        BugBearVisitor(filename="<string>", lines=[]).visit(syntax_tree)
+        source = "foo = lambda: IOError\ntry:\n    ...\nexcept (foo(),):\n    ...\n"
+        lines = source.splitlines()
+        syntax_tree = ast.parse(source)
+        BugBearVisitor(filename="<string>", lines=lines).visit(syntax_tree)
 
 
 if __name__ == "__main__":

@@ -375,8 +375,7 @@ class BugBearVisitor(ast.NodeVisitor):
         self.check_for_b018(node)
 
     def get_source_segment(self, node: ast.AST):
-        lines = self.lines
-        return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
+        return self.lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
     def check_for_b036(self, node: ast.Constant) -> None:
         """Look for constants that are strings or bytestrings on a single line

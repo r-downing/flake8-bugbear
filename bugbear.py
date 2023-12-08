@@ -29,6 +29,7 @@ CONTEXTFUL_NODES = (
     ast.SetComp,
     ast.DictComp,
     ast.GeneratorExp,
+    ast.JoinedStr,
 )
 FUNCTION_NODES = (ast.AsyncFunctionDef, ast.FunctionDef, ast.Lambda)
 B908_pytest_functions = {"raises", "warns"}
@@ -381,14 +382,20 @@ class BugBearVisitor(ast.NodeVisitor):
 
     def visit_Constant(self, node: ast.Constant):
         if isinstance(node.value, (str, bytes)) and node.lineno == node.end_lineno:
-            seg = self.get_source_segment(node)
-            try:
-                exp = cst.parse_expression(seg)
-                if isinstance(exp, cst.ConcatenatedString):
-                    self.errors.append(B036(node.lineno, node.col_offset))
-            except Exception as e:
-                raise ValueError(f"invalid segment {seg!r} {node.lineno}, {node.col_offset} from {self.lines}") from e
-        self.generic_visit(node)
+            if not (
+                self.contexts and isinstance(self.contexts[-1].node, ast.JoinedStr)
+            ):
+                seg = self.get_source_segment(node)
+                try:
+                    exp = cst.parse_expression(seg)
+                    if isinstance(exp, cst.ConcatenatedString):
+                        self.errors.append(B036(node.lineno, node.col_offset))
+                except Exception as e:
+                    raise ValueError(
+                        f"invalid segment {seg!r} {node.lineno}, {node.col_offset} from"
+                        f" {self.lines}"
+                    ) from e
+            self.generic_visit(node)
 
     def visit_ExceptHandler(self, node):
         if node.type is None:

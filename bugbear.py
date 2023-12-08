@@ -387,7 +387,7 @@ class BugBearVisitor(ast.NodeVisitor):
                 if isinstance(exp, cst.ConcatenatedString):
                     self.errors.append(B036(node.lineno, node.col_offset))
             except Exception as e:
-                raise ValueError(f"invalid segment {seg}") from e
+                raise ValueError(f"invalid segment {seg!r} from {self.lines}") from e
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node):

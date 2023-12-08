@@ -380,15 +380,14 @@ class BugBearVisitor(ast.NodeVisitor):
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
     def visit_Constant(self, node: ast.Constant):
-        if (
-            isinstance(node.value, (str, bytes))
-            and node.lineno == node.end_lineno
-            and isinstance(
-                cst.parse_expression(self.get_source_segment(node)),
-                cst.ConcatenatedString,
-            )
-        ):
-            self.errors.append(B036(node.lineno, node.col_offset))
+        if isinstance(node.value, (str, bytes)) and node.lineno == node.end_lineno:
+            seg = self.get_source_segment(node)
+            try:
+                exp = cst.parse_expression(seg)
+                if isinstance(exp, cst.ConcatenatedString):
+                    self.errors.append(B036(node.lineno, node.col_offset))
+            except Exception as e:
+                raise ValueError(f"invalid segment {seg}") from e
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node):

@@ -195,6 +195,8 @@ second usage. Save the result to a list if the result is needed multiple times.
 
 **B035**: Found dict comprehension with a static key - either a constant value or variable not from the comprehension expression. This will result in a dict with a single key that was repeatedly overwritten.
 
+**B036**: Found inline impline string concatenation found. E.g. ``["a", "b" "c"]`` becomes ``["a", "bc"]``.
+
 Opinionated warnings
 ~~~~~~~~~~~~~~~~~~~~
 

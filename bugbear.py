@@ -381,6 +381,9 @@ class BugBearVisitor(ast.NodeVisitor):
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
     def check_for_b036(self, node: ast.Constant) -> None:
+        """Look for constants that are strings or bytestrings on a single line
+        and not inside an f-string, with at least two sets of quotes. Check
+        them with libcst to see if they are ConcatenatedStrings."""
         if not isinstance(node.value, (str, bytes)):
             return
         if node.lineno != node.end_lineno:
@@ -1981,7 +1984,7 @@ B034 = Error(
 B035 = Error(message="B035 Static key in dict comprehension {!r}.")
 
 B036 = Error(
-    message="B036 Implicit str contatenation found. Either combine or use a '+'."
+    message="B036 Implicit inline str contatenation found. Either combine or use '+'."
 )
 
 # Warnings disabled by default.

@@ -376,8 +376,6 @@ class BugBearVisitor(ast.NodeVisitor):
 
     def get_source_segment(self, node: ast.AST):
         lines = self.lines
-        if isinstance(self.lines, str):
-            lines = self.lines.splitlines()
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
     def check_for_b036(self, node: ast.Constant) -> None:

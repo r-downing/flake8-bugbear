@@ -380,21 +380,22 @@ class BugBearVisitor(ast.NodeVisitor):
             lines = self.lines.splitlines()
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
+    def check_for_b036(self, node: ast.Constant) -> None:
+        if not isinstance(node.value, (str, bytes)):
+            return
+        if node.lineno != node.end_lineno:
+            return  # only checking single-line strings
+        if self.contexts and isinstance(self.contexts[-1].node, ast.JoinedStr):
+            return  # py3.12 - const parts of f-string parsed as separate constants
+        source_segment = self.get_source_segment(node)
+        if source_segment.count('"') + source_segment.count("'") < 4:
+            return
+        exp = cst.parse_expression(source_segment)
+        if isinstance(exp, cst.ConcatenatedString):
+            self.errors.append(B036(node.lineno, node.col_offset))
+
     def visit_Constant(self, node: ast.Constant):
-        if isinstance(node.value, (str, bytes)) and node.lineno == node.end_lineno:
-            if not (
-                self.contexts and isinstance(self.contexts[-1].node, ast.JoinedStr)
-            ):
-                seg = self.get_source_segment(node)
-                try:
-                    exp = cst.parse_expression(seg)
-                    if isinstance(exp, cst.ConcatenatedString):
-                        self.errors.append(B036(node.lineno, node.col_offset))
-                except Exception as e:
-                    raise ValueError(
-                        f"invalid segment {seg!r} {node.lineno}, {node.col_offset} from"
-                        f" {self.lines}"
-                    ) from e
+        self.check_for_b036(node)
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node):

@@ -395,7 +395,7 @@ class BugBearVisitor(ast.NodeVisitor):
                         f"invalid segment {seg!r} {node.lineno}, {node.col_offset} from"
                         f" {self.lines}"
                     ) from e
-            self.generic_visit(node)
+        self.generic_visit(node)
 
     def visit_ExceptHandler(self, node):
         if node.type is None:

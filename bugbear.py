@@ -407,6 +407,12 @@ class BugBearVisitor(ast.NodeVisitor):
             maybe_error = _check_redundant_excepthandlers(names, node)
             if maybe_error is not None:
                 self.errors.append(maybe_error)
+        if "BaseException" in names and not any(
+            isinstance(subnode, ast.Raise) and subnode.exc is None
+            for subnode in node.body
+        ):
+            self.errors.append(B036(node.lineno, node.col_offset))
+
         self.generic_visit(node)
 
     def visit_UAdd(self, node):
@@ -668,7 +674,7 @@ class BugBearVisitor(ast.NodeVisitor):
                             and isinstance(item_context.func.value, ast.Name)
                             and item_context.func.value.id == "pytest"
                             and "match"
-                            not in [kwd.arg for kwd in item_context.keywords]
+                            not in (kwd.arg for kwd in item_context.keywords)
                         )
                     )
                 )
@@ -677,7 +683,7 @@ class BugBearVisitor(ast.NodeVisitor):
                     and item_context.func.id == "raises"
                     and isinstance(item_context.func.ctx, ast.Load)
                     and "pytest.raises" in self._b005_imports
-                    and "match" not in [kwd.arg for kwd in item_context.keywords]
+                    and "match" not in (kwd.arg for kwd in item_context.keywords)
                 )
             )
             and len(item_context.args) == 1
@@ -1953,6 +1959,9 @@ B034 = Error(
 )
 B035 = Error(message="B035 Static key in dict comprehension {!r}.")
 
+B036 = Error(
+    message="B036 Don't except `BaseException` unless you plan to re-raise it."
+)
 
 # Warnings disabled by default.
 B901 = Error(

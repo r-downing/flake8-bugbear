@@ -38,3 +38,17 @@ try:
     pass
 except BaseException as e:
     raise e  # ok - raising same thing
+
+try:
+    pass
+except BaseException:
+    if 0:
+        raise  # ok - raised somewhere within branch
+
+try:
+    pass
+except BaseException:
+    try:  # nested try
+        pass
+    except ValueError:
+        raise  # bad - raising within a nested try/except, but not within the main one

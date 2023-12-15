@@ -33,3 +33,8 @@ try:
 except BaseException as ex:  # bad - raised something else
     print("aaa")
     raise KeyError from ex
+
+try:
+    pass
+except BaseException as e:
+    raise e  # ok - raising same thing

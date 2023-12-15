@@ -408,7 +408,8 @@ class BugBearVisitor(ast.NodeVisitor):
             if maybe_error is not None:
                 self.errors.append(maybe_error)
         if "BaseException" in names and not any(
-            isinstance(subnode, ast.Raise) and subnode.exc is None
+            isinstance(subnode, ast.Raise)
+            and (subnode.exc is None or subnode.exc.id == node.name)
             for subnode in node.body
         ):
             self.errors.append(B036(node.lineno, node.col_offset))
@@ -1677,8 +1678,8 @@ B001 = Error(
     message=(
         "B001 Do not use bare `except:`, it also catches unexpected "
         "events like memory errors, interrupts, system exit, and so on.  "
-        "Prefer `except Exception:`.  If you're sure what you're doing, "
-        "be explicit and write `except BaseException:`."
+        "Prefer excepting specific exceptions  If you're sure what you're "
+        "doing, be explicit and write `except BaseException:`."
     )
 )
 

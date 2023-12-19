@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ast
 import builtins
 import itertools
@@ -349,6 +351,35 @@ class ExceptBaseExceptionVisitor(ast.NodeVisitor):
         return super().generic_visit(node)
 
 
+class ClassInitVisitor(ast.NodeVisitor):
+    """Use get_errors() to scan a ClassDef's __init__() method to ensure that
+    it doesn't have any `yield` or `return <value>`"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.errors: list[error] = []
+
+    @staticmethod
+    def get_errors(class_node: ast.ClassDef) -> list[error] | None:
+        funcs = (n for n in class_node.body if isinstance(n, ast.FunctionDef))
+        init_func = next((n for n in funcs if n.name == "__init__"), None)
+        if init_func is None:
+            return None
+        visitor = ClassInitVisitor()
+        visitor.visit(init_func)
+        return visitor.errors
+
+    def visit_Return(self, node: ast.Return) -> None:  # noqa: B906
+        if node.value is not None:
+            self.errors.append(B037(node.lineno, node.col_offset))
+
+    def visit_Yield(self, node: ast.Yield) -> None:  # noqa: B906
+        self.errors.append(B037(node.lineno, node.col_offset))
+
+    def visit_YieldFrom(self, node: ast.YieldFrom) -> None:  # noqa: B906
+        self.errors.append(B037(node.lineno, node.col_offset))
+
+
 @attr.s
 class BugBearVisitor(ast.NodeVisitor):
     filename = attr.ib()
@@ -540,10 +571,12 @@ class BugBearVisitor(ast.NodeVisitor):
         self.check_for_b906(node)
         self.generic_visit(node)
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node: ast.ClassDef):
         self.check_for_b903(node)
         self.check_for_b021(node)
         self.check_for_b024_and_b027(node)
+        if init_errors := ClassInitVisitor.get_errors(node):
+            self.errors.extend(init_errors)
         self.generic_visit(node)
 
     def visit_Try(self, node):
@@ -1984,6 +2017,10 @@ B035 = Error(message="B035 Static key in dict comprehension {!r}.")
 
 B036 = Error(
     message="B036 Don't except `BaseException` unless you plan to re-raise it."
+)
+
+B037 = Error(
+    message="B037 Class `__init__` methods must not return or yield and any values."
 )
 
 # Warnings disabled by default.

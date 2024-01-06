@@ -351,35 +351,6 @@ class ExceptBaseExceptionVisitor(ast.NodeVisitor):
         return super().generic_visit(node)
 
 
-class ClassInitVisitor(ast.NodeVisitor):
-    """Use get_errors() to scan a ClassDef's __init__() method to ensure that
-    it doesn't have any `yield` or `return <value>`"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.errors: list[error] = []
-
-    @staticmethod
-    def get_errors(class_node: ast.ClassDef) -> list[error] | None:
-        funcs = (n for n in class_node.body if isinstance(n, ast.FunctionDef))
-        init_func = next((n for n in funcs if n.name == "__init__"), None)
-        if init_func is None:
-            return None
-        visitor = ClassInitVisitor()
-        visitor.visit(init_func)
-        return visitor.errors
-
-    def visit_Return(self, node: ast.Return) -> None:  # noqa: B906
-        if node.value is not None:
-            self.errors.append(B037(node.lineno, node.col_offset))
-
-    def visit_Yield(self, node: ast.Yield) -> None:  # noqa: B906
-        self.errors.append(B037(node.lineno, node.col_offset))
-
-    def visit_YieldFrom(self, node: ast.YieldFrom) -> None:  # noqa: B906
-        self.errors.append(B037(node.lineno, node.col_offset))
-
-
 @attr.s
 class BugBearVisitor(ast.NodeVisitor):
     filename = attr.ib()
@@ -409,6 +380,30 @@ class BugBearVisitor(ast.NodeVisitor):
 
         context, stack = self.contexts[-1]
         return stack
+
+    def in_class_init(self) -> bool:
+        return (
+            len(self.contexts) >= 2
+            and isinstance(self.contexts[-2].node, ast.ClassDef)
+            and isinstance(self.contexts[-1].node, ast.FunctionDef)
+            and self.contexts[-1].node.name == "__init__"
+        )
+
+    def visit_Return(self, node: ast.Return) -> None:
+        if self.in_class_init():
+            if node.value is not None:
+                self.errors.append(B037(node.lineno, node.col_offset))
+        self.generic_visit(node)
+
+    def visit_Yield(self, node: ast.Yield) -> None:
+        if self.in_class_init():
+            self.errors.append(B037(node.lineno, node.col_offset))
+        self.generic_visit(node)
+
+    def visit_YieldFrom(self, node: ast.YieldFrom) -> None:
+        if self.in_class_init():
+            self.errors.append(B037(node.lineno, node.col_offset))
+        self.generic_visit(node)
 
     def visit(self, node):
         is_contextful = isinstance(node, CONTEXTFUL_NODES)
@@ -575,8 +570,6 @@ class BugBearVisitor(ast.NodeVisitor):
         self.check_for_b903(node)
         self.check_for_b021(node)
         self.check_for_b024_and_b027(node)
-        if init_errors := ClassInitVisitor.get_errors(node):
-            self.errors.extend(init_errors)
         self.generic_visit(node)
 
     def visit_Try(self, node):

@@ -818,7 +818,3 @@ Glued together by `Łukasz Langa <mailto:lukasz@langa.pl>`_. Multiple
 improvements by `Markus Unterwaditzer <mailto:markus@unterwaditzer.net>`_,
 `Martijn Pieters <mailto:github.com@zopatista.com>`_,
 `Cooper Lees <mailto:me@cooperlees.com>`_, and `Ryan May <mailto:rmay31@gmail.com>`_.
-
-====
-bad rst
-===
